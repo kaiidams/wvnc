@@ -1,0 +1,53 @@
+cache:
+  key:
+    prefix: $CI_COMMIT_REF_SLUG
+    files:
+      - Cargo.lock
+      - pnpm-lock.yaml
+  paths:
+    - .cargo/
+    - target/
+    - .pnpm-store/
+
+build:cargo:
+  image: "rust:slim"
+  stage: build
+  before_script:
+    - apt-get update -yqq && apt-get install -yqq clang
+  script:
+    - rustc --version && cargo --version
+    - rustup target add wasm32-unknown-unknown
+    - cargo build --lib --target wasm32-unknown-unknown --release
+  artifacts:
+    paths:
+      - "target"
+
+test:cargo:
+  image: "rust:slim"
+  dependencies:
+    - build:cargo
+  script:
+    - rustc --version && cargo --version
+    - cargo test --lib --workspace --verbose
+
+pages:
+  stage: deploy
+  image: node:lts
+  dependencies:
+    - build:cargo
+  before_script:
+    - npm install --global corepack@latest
+    - corepack enable
+    - corepack prepare pnpm@latest-10 --activate
+    - pnpm config set store-dir .pnpm-store
+  script:
+    - pnpm install
+    - cp target/wasm32-unknown-unknown/release/wvnc.wasm public/
+    - pnpm build
+  artifacts:
+    paths:
+      - dist
+  pages:
+    publish: dist
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

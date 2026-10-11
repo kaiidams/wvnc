@@ -1,0 +1,131 @@
+name: CI & GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-cargo:
+    name: Build Rust (WASM)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rust Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Add WASM target
+        run: |
+          rustc --version && cargo --version
+          rustup target add wasm32-unknown-unknown
+
+      - name: Build WASM library
+        run: cargo build --lib --target wasm32-unknown-unknown --release
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-artifact
+          path: target/wasm32-unknown-unknown/release/wvnc.wasm
+          retention-days: 1
+
+  test-cargo:
+    name: Cargo Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rust Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run workspace tests
+        run: |
+          rustc --version && cargo --version
+          cargo test --lib --workspace --verbose
+
+  pages:
+    name: Build & Deploy Pages
+    needs: build-cargo
+    # Only deploy on push to the default branch (not on pull requests)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-artifact
+          path: target/wasm32-unknown-unknown/release/
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Copy WASM binary to public
+        run: |
+          mkdir -p public
+          cp target/wasm32-unknown-unknown/release/wvnc.wasm public/
+
+      - name: Build frontend
+        run: pnpm build
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

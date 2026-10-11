@@ -1,0 +1,17 @@
+{
+  "name": "framebuf",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "rust-dev": "cargo build --target wasm32-unknown-unknown --lib",
+    "rust-rel": "cargo build --release --target wasm32-unknown-unknown --lib"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vite": "^8.0.1"
+  }
+}

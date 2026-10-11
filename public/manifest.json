@@ -1,0 +1,27 @@
+{
+  "name": "VNC Viewer",
+  "icons": [
+    {
+      "src": "wvnc.png",
+      "type": "image/png",
+      "sizes": "256x256"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "landscape-primary",
+  "screenshots": [
+    {
+      "src": "screenshots/wide.png",
+      "sizes": "800x480",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "screenshots/narrow.png",
+      "sizes": "480x800",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
+}

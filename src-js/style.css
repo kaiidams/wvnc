@@ -1,0 +1,13 @@
+:root {
+  touch-action: none;
+}
+
+body {
+  margin: 0;
+  background-color: #808080;
+}
+
+#app {
+  display: flex;
+  min-height: 100svh;
+}
