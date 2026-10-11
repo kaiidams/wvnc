@@ -2,6 +2,7 @@ import { dirname, resolve } from 'node:path'
 import { defineConfig, searchForWorkspaceRoot } from 'vite'
 
 export default defineConfig({
+  base: './',
   server: {
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin",
